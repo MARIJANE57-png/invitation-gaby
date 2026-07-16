@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Invitation Gaby - 40 ans</title>
+<style>
+  body{margin:0;font-family:Georgia,'Times New Roman',serif;}
+  .wrap{background:#f5a9c2;width:640px;margin:0 auto;color:#c81e2c;padding:56px 48px 64px;box-sizing:border-box;}
+  input[type=text]{border:none;background:transparent;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#c81e2c;font-weight:700;outline:none;width:100%;}
+  .guest-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #c81e2c55;}
+  .guest-row label{display:flex;align-items:center;gap:6px;font-size:12px;font-family:Helvetica,Arial,sans-serif;}
+  button{cursor:pointer;}
+</style>
+</head>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f5a9c2"/><text x="100" y="115" font-family="Georgia,serif" font-style="italic" font-size="46" fill="#c81e2c" text-anchor="middle">forty.</text></svg>
+</template>
+<body>
+<div class="wrap">
+  <div style="text-align:center;font-size:88px;font-weight:400;font-style:italic;letter-spacing:-2px;line-height:1;margin-bottom:40px;">forty.</div>
+
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+    <div style="flex:1;height:1px;background:#c81e2c;"></div>
+    <div style="font-size:13px;letter-spacing:2px;font-family:Helvetica,Arial,sans-serif;white-space:nowrap;">WEEK-END FESTIF POUR</div>
+    <div style="flex:1;height:1px;background:#c81e2c;"></div>
+  </div>
+
+  <div style="text-align:center;font-family:Helvetica,Arial,sans-serif;font-weight:800;font-size:26px;letter-spacing:0.5px;margin-bottom:32px;">LE 40IÈME ANNIVERSAIRE DE GABI</div>
+
+  <div style="display:flex;border-top:1px solid #c81e2c;border-bottom:1px solid #c81e2c;padding:20px 0;margin-bottom:36px;">
+    <div style="font-size:56px;font-weight:400;line-height:1;flex-shrink:0;">25</div>
+    <div style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;writing-mode:vertical-rl;text-orientation:mixed;padding:0 16px;">JUILLET</div>
+    <div style="border-left:1px solid #c81e2c;padding-left:20px;font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:15px;letter-spacing:0.5px;line-height:1.8;align-self:center;">
+      39 CHEMIN BLANC, STONEHAM<br>
+      ARRIVÉE À 16H — SOUPER À THÈME<br>
+      POSSIBILITÉ DE DORMIR SUR PLACE<br>
+      DISPO DU 24 AU 26 JUILLET
+    </div>
+  </div>
+
+  <div style="background:#ffffff33;border:1px solid #c81e2c;padding:20px 24px;margin-bottom:24px;font-family:Helvetica,Arial,sans-serif;">
+    <div style="font-weight:800;font-size:14px;letter-spacing:1px;margin-bottom:14px;">CONFIRME TA PRÉSENCE :</div>
+    <div id="guestList"></div>
+    <button id="addBtn" style="margin-top:12px;background:none;border:1px dashed #c81e2c;color:#c81e2c;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;padding:8px 14px;">+ AJOUTER UN INVITÉ</button>
+    <div style="margin-top:16px;padding-top:14px;border-top:2px solid #c81e2c;display:flex;justify-content:space-between;font-size:13px;font-weight:800;letter-spacing:0.5px;">
+      <span id="totalVient">0 viennent au souper</span>
+      <span id="totalCouche">0 couchent sur place</span>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-family:Helvetica,Arial,sans-serif;font-size:22px;">
+    <span style="font-weight:800;">RSVP</span> 418 952 6611
+  </div>
+</div>
+
+<script>
+let guests = [{name:"",vient:false,couche:false}];
+
+function render(){
+  const list = document.getElementById('guestList');
+  list.innerHTML = '';
+  guests.forEach((g,i)=>{
+    const row = document.createElement('div');
+    row.className = 'guest-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Nom" value="${g.name}" data-i="${i}" class="nameInput">
+      <label><input type="checkbox" data-i="${i}" class="vientCb" ${g.vient?'checked':''}>Souper 16h</label>
+      <label><input type="checkbox" data-i="${i}" class="coucheCb" ${g.couche?'checked':''}>Couche</label>
+      <button data-i="${i}" class="rmBtn" style="background:none;border:none;color:#c81e2c;font-size:16px;">×</button>
+    `;
+    list.appendChild(row);
+  });
+  document.querySelectorAll('.nameInput').forEach(el=>el.addEventListener('input',e=>{
+    guests[+e.target.dataset.i].name = e.target.value;
+  }));
+  document.querySelectorAll('.nameInput').forEach(el=>el.addEventListener('blur',e=>{
+    submitGuest(guests[+e.target.dataset.i]);
+  }));
+  document.querySelectorAll('.vientCb').forEach(el=>el.addEventListener('change',e=>{
+    guests[+e.target.dataset.i].vient = e.target.checked; updateTotals(); submitGuest(guests[+e.target.dataset.i]);
+  }));
+  document.querySelectorAll('.coucheCb').forEach(el=>el.addEventListener('change',e=>{
+    guests[+e.target.dataset.i].couche = e.target.checked; updateTotals(); submitGuest(guests[+e.target.dataset.i]);
+  }));
+  document.querySelectorAll('.rmBtn').forEach(el=>el.addEventListener('click',e=>{
+    guests.splice(+e.target.dataset.i,1); render(); updateTotals();
+  }));
+  updateTotals();
+}
+function updateTotals(){
+  document.getElementById('totalVient').textContent = guests.filter(g=>g.vient).length + ' viennent au souper';
+  document.getElementById('totalCouche').textContent = guests.filter(g=>g.couche).length + ' couchent sur place';
+}
+function submitGuest(g){
+  if(!g.name) return;
+  const url = 'https://docs.google.com/forms/d/e/1FAIpQLSc5iG-5uVKDeDhvdmWjawac7xuEJgQoob1KFIsBKipcyjFu_w/formResponse';
+  const body = new URLSearchParams({
+    'entry.2005620554': g.name,
+    'entry.1166974658': g.vient ? 'OUI' : 'NON',
+    'entry.1045781291': g.couche ? 'OUI' : 'NON'
+  });
+  fetch(url, { method:'POST', mode:'no-cors', body });
+}
+document.getElementById('addBtn').addEventListener('click',()=>{
+  guests.push({name:"",vient:false,couche:false});
+  render();
+});
+render();
+</script>
+</body>
+</html>
