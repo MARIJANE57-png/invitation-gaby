@@ -5,16 +5,15 @@
 <title>Invitation Gaby - 40 ans</title>
 <style>
   body{margin:0;font-family:Georgia,'Times New Roman',serif;}
-  .wrap{background:#f5a9c2;width:640px;margin:0 auto;color:#c81e2c;padding:56px 48px 64px;box-sizing:border-box;}
+  .wrap{background:#f5a9c2;width:640px;max-width:100%;margin:0 auto;color:#c81e2c;padding:56px 48px 64px;box-sizing:border-box;}
   input[type=text]{border:none;background:transparent;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#c81e2c;font-weight:700;outline:none;width:100%;}
-  .guest-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #c81e2c55;}
+  .guest-row{display:grid;grid-template-columns:1fr auto auto auto auto;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #c81e2c55;}
   .guest-row label{display:flex;align-items:center;gap:6px;font-size:12px;font-family:Helvetica,Arial,sans-serif;}
+  .saved{font-size:11px;font-family:Helvetica,Arial,sans-serif;color:#2c9c3a;font-weight:700;opacity:0;transition:opacity .3s;}
+  .saved.show{opacity:1;}
   button{cursor:pointer;}
 </style>
 </head>
-<template id="__bundler_thumbnail">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f5a9c2"/><text x="100" y="115" font-family="Georgia,serif" font-style="italic" font-size="46" fill="#c81e2c" text-anchor="middle">forty.</text></svg>
-</template>
 <body>
 <div class="wrap">
   <div style="text-align:center;font-size:88px;font-weight:400;font-style:italic;letter-spacing:-2px;line-height:1;margin-bottom:40px;">forty.</div>
@@ -53,8 +52,17 @@
   </div>
 </div>
 
+<!-- Iframe cachée + form pour soumission Google Forms sans CORS -->
+<iframe name="ghostFrame" style="display:none" aria-hidden="true"></iframe>
+<form id="ghostForm" action="https://docs.google.com/forms/d/e/1FAIpQLSc5iG-5uVKDeDhvdmWjawac7xuEJgQoob1KFIsBKipcyjFu_w/formResponse" method="POST" target="ghostFrame" style="display:none">
+  <input type="text" name="entry.2005620554" id="fName">
+  <input type="text" name="entry.1166974658" id="fVient">
+  <input type="text" name="entry.1045781291" id="fCouche">
+</form>
+
 <script>
 let guests = [{name:"",vient:false,couche:false}];
+const timers = {};
 
 function render(){
   const list = document.getElementById('guestList');
@@ -63,44 +71,58 @@ function render(){
     const row = document.createElement('div');
     row.className = 'guest-row';
     row.innerHTML = `
-      <input type="text" placeholder="Nom" value="${g.name}" data-i="${i}" class="nameInput">
+      <input type="text" placeholder="Nom" value="${g.name.replace(/"/g,'&quot;')}" data-i="${i}" class="nameInput">
       <label><input type="checkbox" data-i="${i}" class="vientCb" ${g.vient?'checked':''}>Souper 16h</label>
       <label><input type="checkbox" data-i="${i}" class="coucheCb" ${g.couche?'checked':''}>Couche</label>
+      <span class="saved" data-i="${i}">✓ enregistré</span>
       <button data-i="${i}" class="rmBtn" style="background:none;border:none;color:#c81e2c;font-size:16px;">×</button>
     `;
     list.appendChild(row);
   });
   document.querySelectorAll('.nameInput').forEach(el=>el.addEventListener('input',e=>{
     guests[+e.target.dataset.i].name = e.target.value;
-  }));
-  document.querySelectorAll('.nameInput').forEach(el=>el.addEventListener('blur',e=>{
-    submitGuest(guests[+e.target.dataset.i]);
+    scheduleSubmit(+e.target.dataset.i);
   }));
   document.querySelectorAll('.vientCb').forEach(el=>el.addEventListener('change',e=>{
-    guests[+e.target.dataset.i].vient = e.target.checked; updateTotals(); submitGuest(guests[+e.target.dataset.i]);
+    guests[+e.target.dataset.i].vient = e.target.checked; updateTotals();
+    scheduleSubmit(+e.target.dataset.i);
   }));
   document.querySelectorAll('.coucheCb').forEach(el=>el.addEventListener('change',e=>{
-    guests[+e.target.dataset.i].couche = e.target.checked; updateTotals(); submitGuest(guests[+e.target.dataset.i]);
+    guests[+e.target.dataset.i].couche = e.target.checked; updateTotals();
+    scheduleSubmit(+e.target.dataset.i);
   }));
   document.querySelectorAll('.rmBtn').forEach(el=>el.addEventListener('click',e=>{
     guests.splice(+e.target.dataset.i,1); render(); updateTotals();
   }));
   updateTotals();
 }
+
 function updateTotals(){
   document.getElementById('totalVient').textContent = guests.filter(g=>g.vient).length + ' viennent au souper';
   document.getElementById('totalCouche').textContent = guests.filter(g=>g.couche).length + ' couchent sur place';
 }
-function submitGuest(g){
-  if(!g.name) return;
-  const url = 'https://docs.google.com/forms/d/e/1FAIpQLSc5iG-5uVKDeDhvdmWjawac7xuEJgQoob1KFIsBKipcyjFu_w/formResponse';
-  const body = new URLSearchParams({
-    'entry.2005620554': g.name,
-    'entry.1166974658': g.vient ? 'OUI' : 'NON',
-    'entry.1045781291': g.couche ? 'OUI' : 'NON'
-  });
-  fetch(url, { method:'POST', mode:'no-cors', body });
+
+// Debounce : attend 800ms après le dernier changement avant d'envoyer
+function scheduleSubmit(i){
+  if(timers[i]) clearTimeout(timers[i]);
+  timers[i] = setTimeout(()=>submitGuest(i), 800);
 }
+
+function submitGuest(i){
+  const g = guests[i];
+  if(!g || !g.name.trim()) return;
+  document.getElementById('fName').value = g.name.trim();
+  document.getElementById('fVient').value = g.vient ? 'OUI' : 'NON';
+  document.getElementById('fCouche').value = g.couche ? 'OUI' : 'NON';
+  document.getElementById('ghostForm').submit();
+  // Feedback visuel
+  const badge = document.querySelector(`.saved[data-i="${i}"]`);
+  if(badge){
+    badge.classList.add('show');
+    setTimeout(()=>badge.classList.remove('show'), 2500);
+  }
+}
+
 document.getElementById('addBtn').addEventListener('click',()=>{
   guests.push({name:"",vient:false,couche:false});
   render();
