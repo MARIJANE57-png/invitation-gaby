@@ -73,11 +73,14 @@ function render(){
   document.querySelectorAll('.nameInput').forEach(el=>el.addEventListener('input',e=>{
     guests[+e.target.dataset.i].name = e.target.value;
   }));
+  document.querySelectorAll('.nameInput').forEach(el=>el.addEventListener('blur',e=>{
+    submitGuest(guests[+e.target.dataset.i]);
+  }));
   document.querySelectorAll('.vientCb').forEach(el=>el.addEventListener('change',e=>{
-    guests[+e.target.dataset.i].vient = e.target.checked; updateTotals();
+    guests[+e.target.dataset.i].vient = e.target.checked; updateTotals(); submitGuest(guests[+e.target.dataset.i]);
   }));
   document.querySelectorAll('.coucheCb').forEach(el=>el.addEventListener('change',e=>{
-    guests[+e.target.dataset.i].couche = e.target.checked; updateTotals();
+    guests[+e.target.dataset.i].couche = e.target.checked; updateTotals(); submitGuest(guests[+e.target.dataset.i]);
   }));
   document.querySelectorAll('.rmBtn').forEach(el=>el.addEventListener('click',e=>{
     guests.splice(+e.target.dataset.i,1); render(); updateTotals();
@@ -87,6 +90,16 @@ function render(){
 function updateTotals(){
   document.getElementById('totalVient').textContent = guests.filter(g=>g.vient).length + ' viennent au souper';
   document.getElementById('totalCouche').textContent = guests.filter(g=>g.couche).length + ' couchent sur place';
+}
+function submitGuest(g){
+  if(!g.name) return;
+  const url = 'https://docs.google.com/forms/d/e/1FAIpQLSc5iG-5uVKDeDhvdmWjawac7xuEJgQoob1KFIsBKipcyjFu_w/formResponse';
+  const body = new URLSearchParams({
+    'entry.2005620554': g.name,
+    'entry.1166974658': g.vient ? 'OUI' : 'NON',
+    'entry.1045781291': g.couche ? 'OUI' : 'NON'
+  });
+  fetch(url, { method:'POST', mode:'no-cors', body });
 }
 document.getElementById('addBtn').addEventListener('click',()=>{
   guests.push({name:"",vient:false,couche:false});
